@@ -1,14 +1,16 @@
+import { Node as ProseMirrorNode, NodeType } from 'prosemirror-model';
+
 // :: (node: ProseMirrorNode, descend: ?boolean) → [{ node: ProseMirrorNode, pos: number }]
 // Flattens descendants of a given `node`. It doesn't descend into a node when descend argument is `false` (defaults to `true`).
 //
 // ```javascript
 // const children = flatten(node);
 // ```
-export const flatten = (node, descend = true) => {
+export const flatten = (node: ProseMirrorNode, descend: boolean = true) => {
   if (!node) {
     throw new Error('Invalid "node" parameter');
   }
-  const result = [];
+  const result: Array<{ node: ProseMirrorNode; pos: number }> = [];
   node.descendants((child, pos) => {
     result.push({ node: child, pos });
     if (!descend) {
@@ -24,7 +26,11 @@ export const flatten = (node, descend = true) => {
 // ```javascript
 // const textNodes = findChildren(node, child => child.isText, false);
 // ```
-export const findChildren = (node, predicate, descend) => {
+export const findChildren = (
+  node: ProseMirrorNode,
+  predicate: (node: ProseMirrorNode) => boolean,
+  descend?: boolean
+) => {
   if (!node) {
     throw new Error('Invalid "node" parameter');
   } else if (!predicate) {
@@ -39,7 +45,7 @@ export const findChildren = (node, predicate, descend) => {
 // ```javascript
 // const textNodes = findTextNodes(node);
 // ```
-export const findTextNodes = (node, descend) => {
+export const findTextNodes = (node: ProseMirrorNode, descend?: boolean) => {
   return findChildren(node, child => child.isText, descend);
 };
 
@@ -49,7 +55,7 @@ export const findTextNodes = (node, descend) => {
 // ```javascript
 // const inlineNodes = findInlineNodes(node);
 // ```
-export const findInlineNodes = (node, descend) => {
+export const findInlineNodes = (node: ProseMirrorNode, descend?: boolean) => {
   return findChildren(node, child => child.isInline, descend);
 };
 
@@ -59,7 +65,7 @@ export const findInlineNodes = (node, descend) => {
 // ```javascript
 // const blockNodes = findBlockNodes(node);
 // ```
-export const findBlockNodes = (node, descend) => {
+export const findBlockNodes = (node: ProseMirrorNode, descend?: boolean) => {
   return findChildren(node, child => child.isBlock, descend);
 };
 
@@ -69,7 +75,11 @@ export const findBlockNodes = (node, descend) => {
 // ```javascript
 // const mergedCells = findChildrenByAttr(table, attrs => attrs.colspan === 2);
 // ```
-export const findChildrenByAttr = (node, predicate, descend) => {
+export const findChildrenByAttr = (
+  node: ProseMirrorNode,
+  predicate: (attrs?: { [key: string]: any }) => boolean,
+  descend?: boolean
+) => {
   return findChildren(node, child => !!predicate(child.attrs), descend);
 };
 
@@ -79,7 +89,11 @@ export const findChildrenByAttr = (node, predicate, descend) => {
 // ```javascript
 // const cells = findChildrenByType(table, schema.nodes.tableCell);
 // ```
-export const findChildrenByType = (node, nodeType, descend) => {
+export const findChildrenByType = (
+  node: ProseMirrorNode,
+  nodeType: NodeType,
+  descend?: boolean
+) => {
   return findChildren(node, child => child.type === nodeType, descend);
 };
 

@@ -1,5 +1,5 @@
-import { NodeSelection, Selection } from 'prosemirror-state';
-import { Fragment } from 'prosemirror-model';
+import { NodeSelection, Selection, Transaction } from 'prosemirror-state';
+import { Fragment, NodeType } from 'prosemirror-model';
 import { findParentNodeOfType, findPositionOfNodeBefore } from './selection';
 import {
   cloneTr,
@@ -18,7 +18,9 @@ import {
 //   removeParentNodeOfType(schema.nodes.table)(tr)
 // );
 // ```
-export const removeParentNodeOfType = nodeType => tr => {
+export const removeParentNodeOfType = (nodeType: NodeType | NodeType[]) => (
+  tr: Transaction
+) => {
   const parent = findParentNodeOfType(nodeType)(tr.selection);
   if (parent) {
     return removeNodeAtPos(parent.pos)(tr);
@@ -36,7 +38,10 @@ export const removeParentNodeOfType = nodeType => tr => {
 //  replaceParentNodeOfType(schema.nodes.table, node)(tr)
 // );
 // ```
-export const replaceParentNodeOfType = (nodeType, content) => tr => {
+export const replaceParentNodeOfType = (
+  nodeType: NodeType | NodeType[],
+  content
+) => tr => {
   if (!Array.isArray(nodeType)) {
     nodeType = [nodeType];
   }

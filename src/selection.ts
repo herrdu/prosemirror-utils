@@ -1,4 +1,9 @@
 import { Selection } from 'prosemirror-state';
+import {
+  Node as ProseMirrorNode,
+  ResolvedPos,
+  NodeType
+} from 'prosemirror-model';
 import { equalNodeType, isNodeSelection } from './helpers';
 
 // :: (predicate: (node: ProseMirrorNode) → boolean) → (selection: Selection) → ?{pos: number, start: number, depth: number, node: ProseMirrorNode}
@@ -8,8 +13,9 @@ import { equalNodeType, isNodeSelection } from './helpers';
 // const predicate = node => node.type === schema.nodes.blockquote;
 // const parent = findParentNode(predicate)(selection);
 // ```
-export const findParentNode = predicate => ({ $from }) =>
-  findParentNodeClosestToPos($from, predicate);
+export const findParentNode = (
+  predicate: (node: ProseMirrorNode) => boolean
+) => ({ $from }) => findParentNodeClosestToPos($from, predicate);
 
 // :: ($pos: ResolvedPos, predicate: (node: ProseMirrorNode) → boolean) → ?{pos: number, start: number, depth: number, node: ProseMirrorNode}
 // Iterates over parent nodes starting from the given `$pos`, returning the closest node and its start position `predicate` returns truthy for. `start` points to the start position of the node, `pos` points directly before the node.
@@ -18,7 +24,10 @@ export const findParentNode = predicate => ({ $from }) =>
 // const predicate = node => node.type === schema.nodes.blockquote;
 // const parent = findParentNodeClosestToPos(state.doc.resolve(5), predicate);
 // ```
-export const findParentNodeClosestToPos = ($pos, predicate) => {
+export const findParentNodeClosestToPos = (
+  $pos: ResolvedPos,
+  predicate: (node: ProseMirrorNode) => boolean
+) => {
   for (let i = $pos.depth; i > 0; i--) {
     const node = $pos.node(i);
     if (predicate(node)) {
@@ -40,8 +49,11 @@ export const findParentNodeClosestToPos = ($pos, predicate) => {
 // const predicate = node => node.type === schema.nodes.table;
 // const parent = findParentDomRef(predicate, domAtPos)(selection); // <table>
 // ```
-export const findParentDomRef = (predicate, domAtPos) => selection => {
-  const parent = findParentNode(predicate)(selection);
+export const findParentDomRef = (
+  predicate: (node: ProseMirrorNode) => boolean,
+  domAtPos: (pos: number) => { node: Node; offset: number }
+) => (selection: Selection) => {
+  const parent = findParentNode(predicate)(selection as any);
   if (parent) {
     return findDomRefAtPos(parent.pos, domAtPos);
   }
@@ -55,8 +67,10 @@ export const findParentDomRef = (predicate, domAtPos) => selection => {
 //   // ....
 // }
 // ```
-export const hasParentNode = predicate => selection => {
-  return !!findParentNode(predicate)(selection);
+export const hasParentNode = (
+  predicate: (node: ProseMirrorNode) => boolean
+) => (selection: Selection) => {
+  return !!findParentNode(predicate)(selection as any);
 };
 
 // :: (nodeType: union<NodeType, [NodeType]>) → (selection: Selection) → ?{pos: number, start: number, depth: number, node: ProseMirrorNode}
@@ -65,8 +79,12 @@ export const hasParentNode = predicate => selection => {
 // ```javascript
 // const parent = findParentNodeOfType(schema.nodes.paragraph)(selection);
 // ```
-export const findParentNodeOfType = nodeType => selection => {
-  return findParentNode(node => equalNodeType(nodeType, node))(selection);
+export const findParentNodeOfType = (nodeType: NodeType | NodeType[]) => (
+  selection: Selection
+) => {
+  return findParentNode(node => equalNodeType(nodeType, node))(
+    selection as any
+  );
 };
 
 // :: ($pos: ResolvedPos, nodeType: union<NodeType, [NodeType]>) → ?{pos: number, start: number, depth: number, node: ProseMirrorNode}
@@ -75,7 +93,10 @@ export const findParentNodeOfType = nodeType => selection => {
 // ```javascript
 // const parent = findParentNodeOfTypeClosestToPos(state.doc.resolve(10), schema.nodes.paragraph);
 // ```
-export const findParentNodeOfTypeClosestToPos = ($pos, nodeType) => {
+export const findParentNodeOfTypeClosestToPos = (
+  $pos: ResolvedPos,
+  nodeType: NodeType | NodeType[]
+) => {
   return findParentNodeClosestToPos($pos, node =>
     equalNodeType(nodeType, node)
   );
@@ -89,7 +110,9 @@ export const findParentNodeOfTypeClosestToPos = ($pos, nodeType) => {
 //   // ....
 // }
 // ```
-export const hasParentNodeOfType = nodeType => selection => {
+export const hasParentNodeOfType = (nodeType: NodeType | NodeType[]) => (
+  selection: Selection
+) => {
   return hasParentNode(node => equalNodeType(nodeType, node))(selection);
 };
 
@@ -100,7 +123,10 @@ export const hasParentNodeOfType = nodeType => selection => {
 // const domAtPos = view.domAtPos.bind(view);
 // const parent = findParentDomRefOfType(schema.nodes.codeBlock, domAtPos)(selection); // <pre>
 // ```
-export const findParentDomRefOfType = (nodeType, domAtPos) => selection => {
+export const findParentDomRefOfType = (
+  nodeType: NodeType | NodeType[],
+  domAtPos: (pos: number) => { node: Node; offset: number }
+) => (selection: Selection) => {
   return findParentDomRef(node => equalNodeType(nodeType, node), domAtPos)(
     selection
   );
@@ -117,9 +143,11 @@ export const findParentDomRefOfType = (nodeType, domAtPos) => selection => {
 //   bodiedExtension,
 // ])(selection);
 // ```
-export const findSelectedNodeOfType = nodeType => selection => {
+export const findSelectedNodeOfType = (nodeType: NodeType | NodeType[]) => (
+  selection: Selection
+) => {
   if (isNodeSelection(selection)) {
-    const { node, $from } = selection;
+    const { node, $from } = selection as any;
     if (equalNodeType(nodeType, node)) {
       return { node, pos: $from.pos, depth: $from.depth };
     }
@@ -132,9 +160,9 @@ export const findSelectedNodeOfType = nodeType => selection => {
 // ```javascript
 // const pos = findPositionOfNodeBefore(tr.selection);
 // ```
-export const findPositionOfNodeBefore = selection => {
-  const { nodeBefore } = selection.$from;
-  const maybeSelection = Selection.findFrom(selection.$from, -1);
+export const findPositionOfNodeBefore = (selection: Selection) => {
+  const { nodeBefore } = (selection as any).$from;
+  const maybeSelection = Selection.findFrom((selection as any).$from, -1);
   if (maybeSelection && nodeBefore) {
     // leaf node
     const parent = findParentNodeOfType(nodeBefore.type)(maybeSelection);
@@ -152,7 +180,10 @@ export const findPositionOfNodeBefore = selection => {
 // const domAtPos = view.domAtPos.bind(view);
 // const ref = findDomRefAtPos($from.pos, domAtPos);
 // ```
-export const findDomRefAtPos = (position, domAtPos) => {
+export const findDomRefAtPos = (
+  position: number,
+  domAtPos: (pos: number) => { node: Node; offset: number }
+) => {
   const dom = domAtPos(position);
   const node = dom.node.childNodes[dom.offset];
 

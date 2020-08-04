@@ -1,5 +1,11 @@
-import { NodeSelection } from 'prosemirror-state';
-import { Fragment, Node as PMNode } from 'prosemirror-model';
+import { NodeSelection, Transaction } from 'prosemirror-state';
+import {
+  Fragment,
+  Node as PMNode,
+  ResolvedPos,
+  Schema,
+  NodeType
+} from 'prosemirror-model';
 import { TableMap } from 'prosemirror-tables';
 import { setTextSelection } from './transforms';
 import { findParentNodeClosestToPos } from './selection';
@@ -12,13 +18,16 @@ import { findParentNodeClosestToPos } from './selection';
 //   // ...
 // }
 // ```
-export const isNodeSelection = selection => {
+export const isNodeSelection = (selection: Selection) => {
   return selection instanceof NodeSelection;
 };
 
 // (nodeType: union<NodeType, [NodeType]>) → boolean
 // Checks if the type a given `node` equals to a given `nodeType`.
-export const equalNodeType = (nodeType, node) => {
+export const equalNodeType = (
+  nodeType: NodeType | NodeType[],
+  node: PMNode
+) => {
   return (
     (Array.isArray(nodeType) && nodeType.indexOf(node.type) > -1) ||
     node.type === nodeType
@@ -27,7 +36,7 @@ export const equalNodeType = (nodeType, node) => {
 
 // (tr: Transaction) → Transaction
 // Creates a new transaction object from a given transaction
-export const cloneTr = tr => {
+export const cloneTr = (tr: Transaction) => {
   return Object.assign(Object.create(tr), tr).setTime(Date.now());
 };
 
@@ -35,7 +44,10 @@ export const cloneTr = tr => {
 // Returns a `replace` transaction that replaces a node at a given position with the given `content`.
 // It will return the original transaction if replacing is not possible.
 // `position` should point at the position immediately before the node.
-export const replaceNodeAtPos = (position, content) => tr => {
+export const replaceNodeAtPos = (
+  position: number,
+  content: Fragment | PMNode
+) => (tr: Transaction) => {
   const node = tr.doc.nodeAt(position);
   const $pos = tr.doc.resolve(position);
   if (canReplace($pos, content)) {
@@ -52,7 +64,7 @@ export const replaceNodeAtPos = (position, content) => tr => {
 
 // ($pos: ResolvedPos, doc: ProseMirrorNode, content: union<ProseMirrorNode, Fragment>, ) → boolean
 // Checks if replacing a node at a given `$pos` inside of the `doc` node with the given `content` is possible.
-export const canReplace = ($pos, content) => {
+export const canReplace = ($pos: ResolvedPos, content: Fragment | PMNode) => {
   const node = $pos.node($pos.depth);
   return (
     node &&
@@ -65,14 +77,14 @@ export const canReplace = ($pos, content) => {
 // (position: number) → (tr: Transaction) → Transaction
 // Returns a `delete` transaction that removes a node at a given position with the given `node`.
 // `position` should point at the position immediately before the node.
-export const removeNodeAtPos = position => tr => {
+export const removeNodeAtPos = (position: number) => (tr: Transaction) => {
   const node = tr.doc.nodeAt(position);
   return cloneTr(tr.delete(position, position + node.nodeSize));
 };
 
 // (schema: Schema) → {[key: string]: NodeType}
 // Returns a map where keys are tableRoles and values are NodeTypes.
-export const tableNodeTypes = schema => {
+export const tableNodeTypes = (schema: Schema) => {
   if (schema.cached.tableNodeTypes) {
     return schema.cached.tableNodeTypes;
   }
@@ -97,7 +109,7 @@ export const tableNodeTypes = schema => {
 //   // ...
 // }
 // ```
-export const canInsert = ($pos, content) => {
+export const canInsert = ($pos: ResolvedPos, content: PMNode | Fragment) => {
   const index = $pos.index();
 
   if (content instanceof Fragment) {
@@ -110,7 +122,7 @@ export const canInsert = ($pos, content) => {
 
 // (node: ProseMirrorNode) → boolean
 // Checks if a given `node` is an empty paragraph
-export const isEmptyParagraph = node => {
+export const isEmptyParagraph = (node: PMNode) => {
   return !node || (node.type.name === 'paragraph' && node.nodeSize === 2);
 };
 
@@ -120,13 +132,16 @@ export const isEmptyParagraph = node => {
 // ```javascript
 // const table = findTableClosestToPos(state.doc.resolve(10));
 // ```
-export const findTableClosestToPos = $pos => {
-  const predicate = node =>
+export const findTableClosestToPos = ($pos: ResolvedPos) => {
+  const predicate = (node: PMNode) =>
     node.type.spec.tableRole && /table/i.test(node.type.spec.tableRole);
   return findParentNodeClosestToPos($pos, predicate);
 };
 
-export const createCell = (cellType, cellContent = null) => {
+export const createCell = (
+  cellType: NodeType,
+  cellContent: Fragment = null
+) => {
   if (cellContent) {
     return cellType.createChecked(null, cellContent);
   }
@@ -136,14 +151,19 @@ export const createCell = (cellType, cellContent = null) => {
 
 // (rect: {left: number, right: number, top: number, bottom: number}) → (selection: Selection) → boolean
 // Checks if a given CellSelection rect is selected
-export const isRectSelected = rect => selection => {
-  const map = TableMap.get(selection.$anchorCell.node(-1));
-  const start = selection.$anchorCell.start(-1);
+export const isRectSelected = (rect: {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}) => (selection: Selection) => {
+  const map = TableMap.get((selection as any).$anchorCell.node(-1));
+  const start = (selection as any).$anchorCell.start(-1);
   const cells = map.cellsInRect(rect);
   const selectedCells = map.cellsInRect(
     map.rectBetween(
-      selection.$anchorCell.pos - start,
-      selection.$headCell.pos - start
+      (selection as any).$anchorCell.pos - start,
+      (selection as any).$headCell.pos - start
     )
   );
 
@@ -178,7 +198,7 @@ export const isRectSelected = rect => selection => {
 //    ['a3', 'b3', 'c3', 'd3'],
 //  ]
 // ```
-export const transpose = array => {
+export const transpose = (array: Array<any[]>) => {
   return array[0].map((_, i) => {
     return array.map(column => column[i]);
   });
@@ -210,7 +230,7 @@ export const transpose = array => {
 //   [A3. B3, C2, null],
 // ]
 // ```
-export const convertTableNodeToArrayOfRows = tableNode => {
+export const convertTableNodeToArrayOfRows = (tableNode: PMNode) => {
   const map = TableMap.get(tableNode);
   const rows = [];
   for (let rowIndex = 0; rowIndex < map.height; rowIndex++) {
@@ -262,7 +282,10 @@ export const convertTableNodeToArrayOfRows = tableNode => {
 // |______|______|______|______|
 // ```
 //
-export const convertArrayOfRowsToTableNode = (tableNode, arrayOfNodes) => {
+export const convertArrayOfRowsToTableNode = (
+  tableNode: PMNode,
+  arrayOfNodes: Array<PMNode[]>
+) => {
   const rowsPM = [];
   const map = TableMap.get(tableNode);
   for (let rowIndex = 0; rowIndex < map.height; rowIndex++) {
@@ -298,10 +321,10 @@ export const convertArrayOfRowsToTableNode = (tableNode, arrayOfNodes) => {
 };
 
 export const moveTableColumn = (
-  table,
-  indexesOrigin,
-  indexesTarget,
-  direction
+  table: any,
+  indexesOrigin: any,
+  indexesTarget: any,
+  direction: number
 ) => {
   let rows = transpose(convertTableNodeToArrayOfRows(table.node));
 
@@ -312,10 +335,10 @@ export const moveTableColumn = (
 };
 
 export const moveTableRow = (
-  table,
-  indexesOrigin,
-  indexesTarget,
-  direction
+  table: any,
+  indexesOrigin: any,
+  indexesTarget: any,
+  direction: number
 ) => {
   let rows = convertTableNodeToArrayOfRows(table.node);
 
@@ -325,16 +348,16 @@ export const moveTableRow = (
 };
 
 const moveRowInArrayOfRows = (
-  rows,
-  indexesOrigin,
-  indexesTarget,
-  directionOverride
+  rows: any[],
+  indexesOrigin: any,
+  indexesTarget: any,
+  directionOverride: any
 ) => {
   let direction = indexesOrigin[0] > indexesTarget[0] ? -1 : 1;
 
   const rowsExtracted = rows.splice(indexesOrigin[0], indexesOrigin.length);
   const positionOffset = rowsExtracted.length % 2 === 0 ? 1 : 0;
-  let target;
+  let target: number;
 
   if (directionOverride === -1 && direction === 1) {
     target = indexesTarget[0] - 1;
@@ -352,10 +375,10 @@ const moveRowInArrayOfRows = (
 };
 
 export const checkInvalidMovements = (
-  originIndex,
-  targetIndex,
-  targets,
-  type
+  originIndex: number,
+  targetIndex: number,
+  targets: any[],
+  type: any
 ) => {
   const direction = originIndex > targetIndex ? -1 : 1;
   const errorMessage = `Target position is invalid, you can't move the ${type} ${originIndex} to ${targetIndex}, the target can't be split. You could use tryToFit option.`;

@@ -26,7 +26,7 @@ import {
 // ```javascript
 // const table = findTable(selection);
 // ```
-export const findTable = selection =>
+export const findTable = (selection: Selection) =>
   findParentNode(
     node => node.type.spec.tableRole && node.type.spec.tableRole === 'table'
   )(selection);
@@ -39,7 +39,7 @@ export const findTable = selection =>
 //   // ...
 // }
 // ```
-export const isCellSelection = selection => {
+export const isCellSelection = (selection: Selection) => {
   return selection instanceof CellSelection;
 };
 
@@ -49,7 +49,7 @@ export const isCellSelection = selection => {
 // ```javascript
 // const rect = getSelectionRect(selection);
 // ```
-export const getSelectionRect = selection => {
+export const getSelectionRect = (selection: Selection) => {
   if (!isCellSelection(selection)) {
     return;
   }
@@ -67,7 +67,9 @@ export const getSelectionRect = selection => {
 // ```javascript
 // const className = isColumnSelected(i)(selection) ? 'selected' : '';
 // ```
-export const isColumnSelected = columnIndex => selection => {
+export const isColumnSelected = (columnIndex: number) => (
+  selection: Selection
+) => {
   if (isCellSelection(selection)) {
     const map = TableMap.get(selection.$anchorCell.node(-1));
     return isRectSelected({
